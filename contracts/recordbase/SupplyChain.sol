@@ -1,6 +1,11 @@
 pragma solidity ^0.4.24;
+
+import "../recordaccesscontrol/ArtistRole.sol";
+import "../recordaccesscontrol/LabelRole.sol";
+import "../recordaccesscontrol/ConsumerRole.sol";
+
 // Define a contract 'Supplychain'
-contract SupplyChain {
+contract SupplyChain is ArtistRole, LabelRole, ConsumerRole {
 
   // Define 'owner'
   address owner;
@@ -26,8 +31,8 @@ contract SupplyChain {
     Recorded,   // 2
     Produced,   // 3
     ForSale,    // 4
-    Purchased,  // 5
-    }
+    Purchased  // 5
+  }
 
   State constant defaultState = State.Pitched;
 
@@ -40,8 +45,8 @@ contract SupplyChain {
     string  labelName; // Label Name
     string  labelInformation;  // Label Information
     uint    albumID;  // Album ID potentially a combination of upc + sku
-    string  albumTitle // Album Title
-    string  albumTracks // Tracks of the album
+    string  albumTitle; // Album Title
+    string  albumTracks; // Tracks of the album
     string  albumStyle; // Musical style attribute
     string  albumNotes; // Album Notes
     uint    albumPrice; // Album Price
@@ -80,7 +85,7 @@ contract SupplyChain {
   // Define a modifier that checks the price and refunds the remaining balance
   modifier checkValue(uint _upc) {
     _;
-    uint _price = items[_upc].productPrice;
+    uint _price = items[_upc].albumPrice;
     uint amountToReturn = msg.value - _price;
     items[_upc].consumerID.transfer(amountToReturn);
   }
@@ -143,7 +148,7 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
     // Add the new item as part of Harvest
     items[_upc].artistID = _originArtistID;
     items[_upc].artistName = _originArtistName;
-    items[_upc].albumID = `${_upc}_${sku}`;
+    items[_upc].albumID = upc + sku;
     items[_upc].albumTitle = _albumTitle;
     items[_upc].albumTracks = _albumTracks;
     items[_upc].albumStyle = _albumStyle;
@@ -162,7 +167,7 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   function signContract(uint _upc, address _originLabelID, string _originLabelName, string _originLabelInformation) public pitched(_upc) onlyArtist() verifyCaller(items[_upc].ownerID)
   {
     // Update the appropriate fields
-    items[_upc].labelID = _originlabelID;
+    items[_upc].labelID = _originLabelID;
     items[_upc].labelName = _originLabelName;
     items[_upc].labelInformation = _originLabelInformation;    
     items[_upc].itemState = State.Signed;
@@ -188,7 +193,7 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   function mixAlbum(uint _upc) public recorded(_upc) onlyLabel() verifyCaller(items[_upc].ownerID)  
   {
     // Update the appropriate fields
-    items[_upc].itemState = State.Produced
+    items[_upc].itemState = State.Produced;
     // Emit the appropriate event
     emit Produced(_upc);
   }
@@ -200,7 +205,7 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   {
     // Update the appropriate fields
     items[_upc].albumPrice = _price;
-    items[_upc].itemState = State.ForSale
+    items[_upc].itemState = State.ForSale;
     // Emit the appropriate event
     emit ForSale(_upc);
   }
@@ -215,14 +220,14 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
     {
     // Update the appropriate fields - ownerID, distributorID, itemState
     address buyer = msg.sender;
-    items[_upc].State = State.Purchased;
+    items[_upc].itemState = State.Purchased;
     items[_upc].consumerID = buyer;
     items[_upc].ownerID = items[_upc].consumerID;
     // Transfer money to farmer
     uint price = items[_upc].albumPrice;
     items[_upc].labelID.transfer(price);
     // emit the appropriate event
-    emit Purchased(_upc)
+    emit Purchased(_upc);
   }
 
   // Define a function 'fetchItemBufferOne' that fetches the data
@@ -236,13 +241,13 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   string  albumTitle,
   string  albumTracks,
   string  albumStyle,
-  string  albumNotes,
+  string  albumNotes
   ) 
   {
     // Assign values to the 9 parameters
     itemSKU = items[_upc].sku;
     itemUPC = items[_upc].upc;
-    ownerID = items[_upc].ownerID
+    ownerID = items[_upc].ownerID;
     originArtistID = items[_upc].artistID;
     originArtistName = items[_upc].artistName;
     albumTitle = items[_upc].albumTitle;
@@ -271,10 +276,10 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   uint    itemUPC,
   uint    albumID,
   uint    albumPrice,
-  uint    itemState,
+  State   itemState,
+  address labelID,
   string  labelName,
   string  labelInformation,
-  address labelID,
   address consumerID
   ) 
   {

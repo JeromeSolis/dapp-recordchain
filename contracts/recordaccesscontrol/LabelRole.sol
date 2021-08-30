@@ -31,7 +31,7 @@ contract LabelRole {
   }
 
   // Define a function 'addFarmer' that adds this role
-  function addLabel(address account) public onlyFarmer {
+  function addLabel(address account) public onlyLabel {
     _addLabel(account);
   }
 

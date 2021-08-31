@@ -31,7 +31,7 @@ contract SupplyChain is ArtistRole, LabelRole, ConsumerRole {
     Recorded,   // 2
     Produced,   // 3
     ForSale,    // 4
-    Purchased  // 5
+    Purchased   // 5
   }
 
   State constant defaultState = State.Pitched;
@@ -146,6 +146,8 @@ contract SupplyChain is ArtistRole, LabelRole, ConsumerRole {
 function meetLabel(uint _upc, address _originArtistID, string _originArtistName, string _albumTitle, string _albumTracks, string _albumStyle, string  _albumNotes) public onlyArtist()  
   {
     // Add the new item as part of Harvest
+    items[_upc].sku = sku;
+    items[_upc].upc = _upc;
     items[_upc].artistID = _originArtistID;
     items[_upc].artistName = _originArtistName;
     items[_upc].albumID = upc + sku;
@@ -201,7 +203,7 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   // Define a function 'sellAlbum' that allows a label to mark an album 'ForSale'
   // Call modifier to check if upc has passed previous supply chain stage
   // Call modifier to verify caller of this function
-  function sellAlbum(uint _upc, uint _price) public produced(_upc) onlyLabel() verifyCaller(items[_upc].labelID)  
+  function sellAlbum(uint _upc, uint _price) public produced(_upc) onlyLabel() verifyCaller(items[_upc].ownerID)  
   {
     // Update the appropriate fields
     items[_upc].albumPrice = _price;
@@ -216,14 +218,14 @@ function meetLabel(uint _upc, address _originArtistID, string _originArtistName,
   // Call modifier to check if upc has passed previous supply chain stage
   // Call modifer to check if buyer has paid enough
   // Call modifer to send any excess ether back to buyer
-  function buyAlbum(uint _upc) forSale(_upc) public payable forSale(_upc) paidEnough(items[_upc].albumPrice) checkValue(items[_upc].albumPrice) onlyConsumer()
+  function buyAlbum(uint _upc) public payable forSale(_upc) paidEnough(items[_upc].albumPrice) checkValue(_upc) onlyConsumer()
     {
-    // Update the appropriate fields - ownerID, distributorID, itemState
+    // Update the appropriate fields - ownerID, consumerID, itemState
     address buyer = msg.sender;
     items[_upc].itemState = State.Purchased;
     items[_upc].consumerID = buyer;
     items[_upc].ownerID = items[_upc].consumerID;
-    // Transfer money to farmer
+    // Transfer money to label
     uint price = items[_upc].albumPrice;
     items[_upc].labelID.transfer(price);
     // emit the appropriate event
